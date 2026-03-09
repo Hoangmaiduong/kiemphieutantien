@@ -46,6 +46,8 @@ export default function App() {
   
   const [ballots, setBallots] = useState<Ballot[]>([]);
   const [currentBallotGạchIds, setCurrentBallotGạchIds] = useState<string[]>([]);
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveMessage, setSaveMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
 
   // Selection Logic
   const handleLevelSelect = (level: ElectionLevel) => {
@@ -127,6 +129,40 @@ export default function App() {
 
     return { candidates: candidateVotes, stats: voteCountStats, invalidCount, total: ballots.length };
   }, [ballots, selectedUnit]);
+
+  const saveToGoogleSheets = async () => {
+    if (!selectedLevel || !selectedUnit || ballots.length === 0) return;
+
+    setIsSaving(true);
+    setSaveMessage(null);
+
+    try {
+      const response = await fetch('/api/save-results', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          levelName: selectedLevel.name,
+          unitName: selectedUnit.name,
+          areaName: selectedArea,
+          total: results.total,
+          invalid: results.invalidCount,
+          voteStats: results.stats.map(s => s.frequency),
+          candidates: results.candidates.map(c => ({ name: c.name, votes: c.votes }))
+        }),
+      });
+
+      const data = await response.json();
+      if (data.success) {
+        setSaveMessage({ type: 'success', text: data.message });
+      } else {
+        setSaveMessage({ type: 'error', text: data.message });
+      }
+    } catch (error) {
+      setSaveMessage({ type: 'error', text: 'Lỗi kết nối máy chủ. Vui lòng thử lại.' });
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-[#F8F8F6] text-[#141414] font-sans selection:bg-[#141414] selection:text-white">
@@ -549,13 +585,41 @@ export default function App() {
                   <p className="text-sm font-medium opacity-40 max-w-xs mb-10 leading-relaxed">
                     Dữ liệu đã được lưu trữ và tổng hợp thành công cho đơn vị bầu cử này.
                   </p>
-                  <button 
-                    onClick={() => setStep('selection')}
-                    className="w-full sm:w-auto flex items-center justify-center gap-3 bg-white text-[#141414] px-10 py-5 rounded-full font-bold uppercase tracking-widest text-xs hover:scale-105 transition-all active:scale-95"
-                  >
-                    <ArrowLeft size={16} />
-                    Quay lại trang chủ
-                  </button>
+                  
+                  <div className="w-full space-y-4">
+                    <button 
+                      onClick={saveToGoogleSheets}
+                      disabled={isSaving}
+                      className={cn(
+                        "w-full flex items-center justify-center gap-3 px-10 py-5 rounded-full font-bold uppercase tracking-widest text-xs transition-all active:scale-95",
+                        isSaving ? "bg-white/20 text-white/40 cursor-not-allowed" : "bg-emerald-500 text-white hover:bg-emerald-600 hover:scale-105"
+                      )}
+                    >
+                      <ClipboardCheck size={16} />
+                      {isSaving ? 'Đang gửi báo cáo...' : 'Gửi báo cáo'}
+                    </button>
+
+                    {saveMessage && (
+                      <motion.p 
+                        initial={{ opacity: 0, y: 5 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className={cn(
+                          "text-[10px] font-bold uppercase tracking-widest",
+                          saveMessage.type === 'success' ? "text-emerald-400" : "text-red-400"
+                        )}
+                      >
+                        {saveMessage.text}
+                      </motion.p>
+                    )}
+
+                    <button 
+                      onClick={() => setStep('selection')}
+                      className="w-full flex items-center justify-center gap-3 bg-white/10 text-white px-10 py-5 rounded-full font-bold uppercase tracking-widest text-xs hover:bg-white/20 transition-all active:scale-95"
+                    >
+                      <ArrowLeft size={16} />
+                      Quay lại trang chủ
+                    </button>
+                  </div>
                 </div>
               </div>
             </motion.div>
