@@ -137,8 +137,12 @@ export default function App() {
     setSaveMessage(null);
 
     try {
-      const response = await fetch('/api/save-results', {
+      // Call GAS URL directly from client side for Netlify compatibility
+      const gasUrl = "https://script.google.com/macros/s/AKfycbyqS22AsBj0Idx84NleCOL2q3S9e0QrCcZOVtkv6ufksoUVpbOYOrLuBK1vq5iT4nQq/exec";
+      
+      const response = await fetch(gasUrl, {
         method: 'POST',
+        mode: 'no-cors', // GAS requires no-cors for simple POST from browser
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           levelName: selectedLevel.name,
@@ -151,14 +155,11 @@ export default function App() {
         }),
       });
 
-      const data = await response.json();
-      if (data.success) {
-        setSaveMessage({ type: 'success', text: data.message });
-      } else {
-        setSaveMessage({ type: 'error', text: data.message });
-      }
+      // With mode: 'no-cors', we can't read the response body, 
+      // but if it doesn't throw, it's usually successful.
+      setSaveMessage({ type: 'success', text: 'Đã gửi báo cáo' });
     } catch (error) {
-      setSaveMessage({ type: 'error', text: 'Lỗi kết nối máy chủ. Vui lòng thử lại.' });
+      setSaveMessage({ type: 'error', text: 'Lỗi gửi báo cáo. Vui lòng thử lại.' });
     } finally {
       setIsSaving(false);
     }
