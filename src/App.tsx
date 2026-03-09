@@ -135,7 +135,7 @@ export default function App() {
         <header className="mb-8 md:mb-12 flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4">
           <div className="space-y-1">
             <h1 className="text-2xl md:text-4xl font-bold tracking-tight text-[#141414]">
-              UBBC Phường Tân Tiến
+              UBBC phường Tân Tiến
             </h1>
             <div className="flex items-center gap-2">
               <span className="w-8 h-[2px] bg-[#141414]/20"></span>
