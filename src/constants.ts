@@ -108,7 +108,7 @@ export const ELECTION_DATA: ElectionLevel[] = [
           { id: 'p3-2', name: 'Nguyễn Văn Độ' },
           { id: 'p3-3', name: 'Trần Thị Hà' },
           { id: 'p3-4', name: 'Trần Mạnh Hiếu' },
-          { id: 'p3-5', name: 'Hoàng Văn Vương' },
+          { id: 'p3-5', name: 'Hoàng Văn Vượng' },
           { id: 'p3-6', name: 'Nguyễn Thị Xuân' },
           { id: 'p3-7', name: 'Giáp Thị Hải Yến' },
           { id: 'p3-8', name: 'Lê Hải Yến' },
@@ -138,7 +138,7 @@ export const ELECTION_DATA: ElectionLevel[] = [
         candidates: [
           { id: 'p5-1', name: 'Khổng Minh Đức' },
           { id: 'p5-2', name: 'Đỗ Huy Hoàng' },
-          { id: 'p5-3', name: 'Lê Thị Kiếm' },
+          { id: 'p5-3', name: 'Lê Thị Kiểm' },
           { id: 'p5-4', name: 'Nguyễn Thị Lý' },
           { id: 'p5-5', name: 'Nguyễn Văn Mừng' },
           { id: 'p5-6', name: 'Lương Văn Sáu' },
