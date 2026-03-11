@@ -46,6 +46,7 @@ export default function App() {
   
   const [ballots, setBallots] = useState<Ballot[]>([]);
   const [currentBallotGạchIds, setCurrentBallotGạchIds] = useState<string[]>([]);
+  const [editingBallotId, setEditingBallotId] = useState<number | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [saveMessage, setSaveMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
 
@@ -87,13 +88,47 @@ export default function App() {
     // A ballot is invalid if the number of voted people > maxVotes
     const isInvalid = votedIds.length > selectedUnit.maxVotes || votedIds.length === 0;
 
-    const newBallot: Ballot = {
-      id: ballots.length + 1,
-      votedCandidateIds: isInvalid ? [] : votedIds,
-      isInvalid
-    };
+    if (editingBallotId !== null) {
+      // Update existing ballot
+      setBallots(prev => prev.map(b => 
+        b.id === editingBallotId 
+          ? { ...b, votedCandidateIds: isInvalid ? [] : votedIds, isInvalid } 
+          : b
+      ));
+      setEditingBallotId(null);
+    } else {
+      // Add new ballot
+      const newBallot: Ballot = {
+        id: ballots.length + 1,
+        votedCandidateIds: isInvalid ? [] : votedIds,
+        isInvalid
+      };
+      setBallots([...ballots, newBallot]);
+    }
+    
+    setCurrentBallotGạchIds([]);
+  };
 
-    setBallots([...ballots, newBallot]);
+  const editBallot = (ballot: Ballot) => {
+    if (!selectedUnit) return;
+    
+    setEditingBallotId(ballot.id);
+    
+    // Load the ballot data back into the form
+    // Note: currentBallotGạchIds are the ones NOT voted for
+    const allCandidateIds = selectedUnit.candidates.map(c => c.id);
+    const gạchIds = allCandidateIds.filter(id => !ballot.votedCandidateIds.includes(id));
+    
+    // If it was invalid, we might need to handle it differently, 
+    // but usually loading the gạchIds is enough.
+    setCurrentBallotGạchIds(gạchIds);
+    
+    // Scroll to top of counting section for better UX
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const cancelEdit = () => {
+    setEditingBallotId(null);
     setCurrentBallotGạchIds([]);
   };
 
@@ -107,6 +142,7 @@ export default function App() {
     setSelectedUnit(null);
     setSelectedArea('');
     setBallots([]);
+    setEditingBallotId(null);
   };
 
   // Results Calculation
@@ -312,10 +348,14 @@ export default function App() {
                   <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 md:mb-10 gap-6">
                     <div className="space-y-1">
                       <div className="inline-flex items-center gap-2 px-3 py-1 bg-[#141414]/5 rounded-full">
-                        <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                        <span className="text-[10px] font-bold uppercase tracking-widest opacity-60">Đang kiểm phiếu</span>
+                        <span className={cn("w-2 h-2 rounded-full animate-pulse", editingBallotId !== null ? "bg-amber-500" : "bg-emerald-500")}></span>
+                        <span className="text-[10px] font-bold uppercase tracking-widest opacity-60">
+                          {editingBallotId !== null ? 'Đang sửa phiếu' : 'Đang kiểm phiếu'}
+                        </span>
                       </div>
-                      <h2 className="text-2xl md:text-3xl font-bold tracking-tight">Phiếu số {ballots.length + 1}</h2>
+                      <h2 className="text-2xl md:text-3xl font-bold tracking-tight">
+                        {editingBallotId !== null ? `Sửa phiếu số ${editingBallotId}` : `Phiếu số ${ballots.length + 1}`}
+                      </h2>
                       <p className="text-[10px] md:text-xs font-medium opacity-40">
                         {selectedUnit.name} • {selectedArea}
                       </p>
@@ -403,11 +443,24 @@ export default function App() {
                   <div className="mt-12 hidden sm:flex flex-col sm:flex-row gap-4">
                     <button
                       onClick={submitBallot}
-                      className="flex-[2] bg-[#141414] text-white py-5 rounded-3xl font-bold uppercase tracking-widest text-xs hover:bg-[#333] transition-all shadow-xl shadow-[#141414]/20 flex items-center justify-center gap-3 active:scale-95"
+                      className={cn(
+                        "flex-[2] py-5 rounded-3xl font-bold uppercase tracking-widest text-xs transition-all shadow-xl flex items-center justify-center gap-3 active:scale-95",
+                        editingBallotId !== null 
+                          ? "bg-amber-500 text-white hover:bg-amber-600 shadow-amber-500/20" 
+                          : "bg-[#141414] text-white hover:bg-[#333] shadow-[#141414]/20"
+                      )}
                     >
-                      <Plus size={20} />
-                      Ghi nhận phiếu
+                      {editingBallotId !== null ? <ClipboardCheck size={20} /> : <Plus size={20} />}
+                      {editingBallotId !== null ? 'Cập nhật phiếu' : 'Ghi nhận phiếu'}
                     </button>
+                    {editingBallotId !== null && (
+                      <button
+                        onClick={cancelEdit}
+                        className="flex-1 py-5 border-2 border-red-500/10 text-red-500 rounded-3xl font-bold uppercase tracking-widest text-[10px] hover:bg-red-50 transition-all active:scale-95"
+                      >
+                        Hủy sửa
+                      </button>
+                    )}
                     <button
                       onClick={finishCounting}
                       className="flex-1 py-5 border-2 border-[#141414]/5 rounded-3xl font-bold uppercase tracking-widest text-[10px] hover:bg-[#141414] hover:text-white transition-all active:scale-95"
@@ -422,11 +475,24 @@ export default function App() {
               <div className="sm:hidden fixed bottom-0 left-0 right-0 p-4 bg-white/80 backdrop-blur-lg border-t border-[#141414]/5 z-30 flex gap-3">
                 <button
                   onClick={submitBallot}
-                  className="flex-[2] bg-[#141414] text-white py-4 rounded-2xl font-bold uppercase tracking-widest text-[10px] flex items-center justify-center gap-2 active:scale-95 shadow-lg shadow-[#141414]/20"
+                  className={cn(
+                    "flex-[2] py-4 rounded-2xl font-bold uppercase tracking-widest text-[10px] flex items-center justify-center gap-2 active:scale-95 shadow-lg",
+                    editingBallotId !== null 
+                      ? "bg-amber-500 text-white shadow-amber-500/20" 
+                      : "bg-[#141414] text-white shadow-[#141414]/20"
+                  )}
                 >
-                  <Plus size={16} />
-                  Ghi nhận
+                  {editingBallotId !== null ? <ClipboardCheck size={16} /> : <Plus size={16} />}
+                  {editingBallotId !== null ? 'Cập nhật' : 'Ghi nhận'}
                 </button>
+                {editingBallotId !== null && (
+                  <button
+                    onClick={cancelEdit}
+                    className="flex-1 py-4 border-2 border-red-500/10 text-red-500 rounded-2xl font-bold uppercase tracking-widest text-[9px] active:scale-95"
+                  >
+                    Hủy
+                  </button>
+                )}
                 <button
                   onClick={finishCounting}
                   className="flex-1 py-4 border-2 border-[#141414]/10 rounded-2xl font-bold uppercase tracking-widest text-[9px] active:scale-95"
@@ -459,14 +525,26 @@ export default function App() {
                 <div className="bg-white p-8 rounded-[2.5rem] border border-[#141414]/5 shadow-xl shadow-[#141414]/5">
                   <h3 className="text-[10px] uppercase tracking-widest font-bold opacity-40 mb-6">Lịch sử phiếu</h3>
                   <div className="space-y-3">
-                    {ballots.slice(-4).reverse().map((ballot) => (
-                      <div key={ballot.id} className="flex justify-between items-center p-4 bg-[#F8F8F6] rounded-2xl">
-                        <span className="text-xs font-bold opacity-30">#{ballot.id}</span>
-                        {ballot.isInvalid ? (
-                          <span className="text-red-500 font-bold text-[10px] uppercase tracking-widest bg-red-50 px-2 py-1 rounded-md">Không hợp lệ</span>
-                        ) : (
-                          <span className="font-bold text-xs">{ballot.votedCandidateIds.length} người</span>
-                        )}
+                    {ballots.slice(-6).reverse().map((ballot) => (
+                      <div key={ballot.id} className={cn(
+                        "flex justify-between items-center p-4 rounded-2xl transition-all",
+                        editingBallotId === ballot.id ? "bg-amber-50 border border-amber-200" : "bg-[#F8F8F6]"
+                      )}>
+                        <div className="flex flex-col">
+                          <span className="text-[10px] font-bold opacity-30">#{ballot.id}</span>
+                          {ballot.isInvalid ? (
+                            <span className="text-red-500 font-bold text-[9px] uppercase tracking-widest">Không hợp lệ</span>
+                          ) : (
+                            <span className="font-bold text-xs">{ballot.votedCandidateIds.length} người</span>
+                          )}
+                        </div>
+                        <button 
+                          onClick={() => editBallot(ballot)}
+                          className="p-2 hover:bg-white rounded-lg transition-colors text-[#141414]/40 hover:text-[#141414]"
+                          title="Sửa phiếu này"
+                        >
+                          <RotateCcw size={14} />
+                        </button>
                       </div>
                     ))}
                     {ballots.length === 0 && (
@@ -527,9 +605,14 @@ export default function App() {
                             <span className="text-2xl font-bold opacity-10 tabular-nums">{(idx + 1).toString().padStart(2, '0')}</span>
                             <span className="text-lg font-bold">{c.name}</span>
                           </div>
-                          <div className="text-right">
-                            <span className="text-2xl font-bold tabular-nums">{c.votes}</span>
-                            <span className="text-[10px] font-bold uppercase tracking-widest opacity-30 ml-2">Phiếu</span>
+                          <div className="text-right flex flex-col items-end">
+                            <div className="flex items-center gap-2">
+                              <span className="text-2xl font-bold tabular-nums">{c.votes}</span>
+                              <span className="text-[10px] font-bold uppercase tracking-widest opacity-30">Phiếu</span>
+                            </div>
+                            <span className="text-[11px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-md">
+                              {results.total > 0 ? ((c.votes / results.total) * 100).toFixed(1) : '0.0'}%
+                            </span>
                           </div>
                         </div>
                         <div className="h-4 bg-[#F8F8F6] rounded-full overflow-hidden p-1">
@@ -548,33 +631,25 @@ export default function App() {
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8">
                 <div className="bg-white p-8 rounded-[2.5rem] border border-[#141414]/5 shadow-xl shadow-[#141414]/5">
-                  <h3 className="text-[11px] uppercase tracking-widest font-bold opacity-40 mb-10 flex items-center gap-2">
+                  <h3 className="text-[11px] uppercase tracking-widest font-bold opacity-40 mb-8 flex items-center gap-2">
                     <BarChart3 size={14} />
                     Thống kê số lượng bầu
                   </h3>
-                  <div className="h-64 w-full">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <BarChart data={results.stats} margin={{ top: 0, right: 0, left: -20, bottom: 0 }}>
-                        <CartesianGrid strokeDasharray="4 4" vertical={false} stroke="#f0f0f0" />
-                        <XAxis 
-                          dataKey="count" 
-                          axisLine={false} 
-                          tickLine={false} 
-                          tick={{ fontSize: 10, fontWeight: 700, fill: '#141414', opacity: 0.3 }}
-                        />
-                        <YAxis hide />
-                        <Tooltip 
-                          cursor={{ fill: '#F8F8F6', radius: 12 }}
-                          contentStyle={{ borderRadius: '20px', border: 'none', boxShadow: '0 20px 25px -5px rgb(0 0 0 / 0.1)', padding: '12px 16px' }}
-                          itemStyle={{ fontWeight: 800, fontSize: '12px' }}
-                        />
-                        <Bar dataKey="frequency" radius={[10, 10, 10, 10]} barSize={32}>
-                          {results.stats.map((entry, index) => (
-                            <Cell key={`cell-${index}`} fill={index % 2 === 0 ? '#141414' : '#141414/40'} />
-                          ))}
-                        </Bar>
-                      </BarChart>
-                    </ResponsiveContainer>
+                  <div className="space-y-4">
+                    {results.stats.map((stat, idx) => (
+                      <div key={idx} className="flex justify-between items-center p-4 bg-[#F8F8F6] rounded-2xl group hover:bg-[#141414] hover:text-white transition-all duration-300">
+                        <div className="flex items-center gap-4">
+                          <div className="w-8 h-8 rounded-full bg-white/50 flex items-center justify-center text-xs font-bold group-hover:bg-white/10">
+                            {idx + 1}
+                          </div>
+                          <span className="text-sm font-bold opacity-60 group-hover:opacity-100">Bầu cho {stat.count}</span>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <span className="text-xl font-bold tabular-nums">{stat.frequency}</span>
+                          <span className="text-[9px] font-bold uppercase tracking-widest opacity-30 group-hover:opacity-50">Phiếu</span>
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 </div>
 
