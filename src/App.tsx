@@ -10,7 +10,10 @@ import {
   BarChart3, 
   ArrowLeft,
   XCircle,
-  Plus
+  Plus,
+  Eye,
+  List,
+  X
 } from 'lucide-react';
 import { 
   BarChart, 
@@ -47,6 +50,7 @@ export default function App() {
   const [ballots, setBallots] = useState<Ballot[]>([]);
   const [currentBallotGạchIds, setCurrentBallotGạchIds] = useState<string[]>([]);
   const [editingBallotId, setEditingBallotId] = useState<number | null>(null);
+  const [showAllBallots, setShowAllBallots] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [saveMessage, setSaveMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
 
@@ -523,7 +527,18 @@ export default function App() {
                 </div>
 
                 <div className="bg-white p-8 rounded-[2.5rem] border border-[#141414]/5 shadow-xl shadow-[#141414]/5">
-                  <h3 className="text-[10px] uppercase tracking-widest font-bold opacity-40 mb-6">Lịch sử phiếu</h3>
+                  <div className="flex justify-between items-center mb-6">
+                    <h3 className="text-[10px] uppercase tracking-widest font-bold opacity-40">Lịch sử phiếu</h3>
+                    {ballots.length > 0 && (
+                      <button 
+                        onClick={() => setShowAllBallots(true)}
+                        className="text-[9px] uppercase tracking-widest font-bold text-emerald-600 hover:underline flex items-center gap-1"
+                      >
+                        <Eye size={12} />
+                        Xem tất cả
+                      </button>
+                    )}
+                  </div>
                   <div className="space-y-3">
                     {ballots.slice(-6).reverse().map((ballot) => (
                       <div key={ballot.id} className={cn(
@@ -699,6 +714,84 @@ export default function App() {
                 </div>
               </div>
             </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Modal Xem tất cả phiếu */}
+        <AnimatePresence>
+          {showAllBallots && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+              <motion.div 
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                onClick={() => setShowAllBallots(false)}
+                className="absolute inset-0 bg-[#141414]/60 backdrop-blur-sm"
+              />
+              <motion.div 
+                initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                className="relative w-full max-w-2xl bg-white rounded-[2.5rem] shadow-2xl overflow-hidden flex flex-col max-h-[80vh]"
+              >
+                <div className="p-8 border-b border-[#141414]/5 flex justify-between items-center">
+                  <div>
+                    <h3 className="text-xl font-bold tracking-tight">Chi tiết toàn bộ phiếu</h3>
+                    <p className="text-xs opacity-40 font-medium">Tổng cộng {ballots.length} phiếu đã kiểm</p>
+                  </div>
+                  <button 
+                    onClick={() => setShowAllBallots(false)}
+                    className="w-10 h-10 rounded-full bg-[#F8F8F6] flex items-center justify-center hover:bg-[#141414] hover:text-white transition-all"
+                  >
+                    <X size={20} />
+                  </button>
+                </div>
+                
+                <div className="flex-1 overflow-y-auto p-6 md:p-8 space-y-4">
+                  {ballots.map((ballot) => (
+                    <div key={ballot.id} className="p-5 bg-[#F8F8F6] rounded-2xl border border-[#141414]/5">
+                      <div className="flex justify-between items-start mb-3">
+                        <span className="text-xs font-bold opacity-30">Phiếu số #{ballot.id}</span>
+                        {ballot.isInvalid ? (
+                          <span className="text-red-500 font-bold text-[10px] uppercase tracking-widest bg-red-50 px-2 py-1 rounded-md">Không hợp lệ</span>
+                        ) : (
+                          <span className="text-emerald-600 font-bold text-[10px] uppercase tracking-widest bg-emerald-50 px-2 py-1 rounded-md">Hợp lệ</span>
+                        )}
+                      </div>
+                      
+                      {!ballot.isInvalid && (
+                        <div className="space-y-2">
+                          <p className="text-[10px] uppercase tracking-widest font-bold opacity-40">Danh sách bầu:</p>
+                          <div className="flex flex-wrap gap-2">
+                            {ballot.votedCandidateIds.map(id => {
+                              const candidate = selectedUnit?.candidates.find(c => c.id === id);
+                              return (
+                                <span key={id} className="text-xs font-bold bg-white px-3 py-1.5 rounded-xl border border-[#141414]/5">
+                                  {candidate?.name || id}
+                                </span>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
+                      
+                      {ballot.isInvalid && (
+                        <p className="text-xs italic opacity-40">Phiếu không hợp lệ (Bầu quá số người quy định hoặc không bầu ai)</p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+                
+                <div className="p-6 border-t border-[#141414]/5 bg-[#F8F8F6]/50">
+                  <button 
+                    onClick={() => setShowAllBallots(false)}
+                    className="w-full py-4 bg-[#141414] text-white rounded-2xl font-bold uppercase tracking-widest text-[10px]"
+                  >
+                    Đóng
+                  </button>
+                </div>
+              </motion.div>
+            </div>
           )}
         </AnimatePresence>
 
